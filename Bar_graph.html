@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>D3 test</title>
+	<script src="./js/d3.v3.min.js"></script>
+	<script src="./js/d3.tip.v0.6.3.js"></script>
+</head>
+<style>
+
+body {
+	font: 15px sans-serif;
+}
+	
+.axis path,
+.axis line {
+	fill: none;
+	stroke: #000;
+	shape-rendering: crispEdges;
+}
+
+.bar {
+	fill: orange;
+}
+
+.bar:hover {
+	fill: orangered ;
+}
+
+.x.axis path {
+	display: none;
+}
+
+.d3-tip {
+	font: 11px sans-serif;
+	line-height: 1;
+	font-weight: bold;
+	padding: 10px;
+	background: rgba(0, 0, 0, 0.8);
+	color: #fff;
+	border-radius: 2px;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+	box-sizing: border-box;
+	display: inline;
+	font-size: 20px;
+	width: 100%;
+	line-height: 1;
+	color: rgba(0, 0, 0, 0.8);
+	content: "\25BC";
+	position: absolute;
+	text-align: center;
+}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+	margin: -1px 0 0 0;
+	top: 100%;
+	left: 0;
+}
+</style>
+<body>
+	<script>
+		function choosedata(d){
+			var req_info = getQuerystring('req_info');
+			switch(req_info){
+				case 'Domain':
+					return d.Domain;
+				case 'AuthProtocol':
+					return d.AuthProtocol;
+				case 'LogonType':
+					return d.LogonType;
+				case 'Destination':
+					return d.Destination;
+				case 'Source':
+					return d.Source;
+				case 'User':
+					return d.User;
+				case 'DateTime':
+					return d.DateTime;
+				case 'LogFile':
+					return d.LogFile;
+				case 'Type':
+					return d.Type;
+				case 'EventID':
+					return d.EventID;
+			}			
+		}
+		function getQuerystring(paramName){
+			var _tempUrl = window.location.search.substring(1); 
+			if(_tempUrl==""){
+				return;
+			}
+			var _tempArray = _tempUrl.split('&'); 
+			
+			for(var i = 0; _tempArray.length; i++) {
+				var _keyValuePair = _tempArray[i].split('='); 
+				
+				if(_keyValuePair[0] == paramName){ 
+					return _keyValuePair[1];
+				}
+			}
+		}
+
+		var margin = {top: 30, right: 30, bottom: 140, left: 62},
+				width = 800 - margin.left - margin.right,
+				height = 800 - margin.top - margin.bottom;
+
+		var formatPercent = d3.format(".");
+
+		var x = d3.scale.ordinal()
+				.rangeRoundBands([0, width], .1);
+
+		var y = d3.scale.linear()
+				.range([height, 0]);
+
+		var xAxis = d3.svg.axis()
+				.scale(x)
+				.orient("bottom");
+
+		var yAxis = d3.svg.axis()
+				.scale(y)
+				.orient("left")
+				.tickFormat(formatPercent);
+
+		var tip = d3.tip()
+			.attr('class', 'd3-tip')
+			.offset([-10, 0])
+			.html(function(d) {
+				return "<strong>" + d.key +" :</strong> <span style='color:red'>" + d.values.count + "</span>";
+			})
+
+		var svg = d3.select("body").append("svg")
+				.attr("width", width + margin.left + margin.right)
+				.attr("height", height + margin.top + margin.bottom)
+			.append("g")
+				.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		svg.call(tip);
+
+		d3.csv("./Data/logons.csv", function(error, data) {
+
+			var nested_data = d3.nest()
+				.key(function(d) { return choosedata(d); })
+				.sortKeys(d3.ascending)
+				.rollup(function(v) {return {count: v.length};})
+				.entries(data);
+				
+			x.domain(d3.values(nested_data).map(function(d) { return d.key;}));
+			y.domain([0, d3.max(nested_data, function(d) { return d.values.count; })]);
+
+			svg.append("g")
+				.attr("class", "x axis")
+				.attr("transform", "translate(0," + height + ")")
+				.call(xAxis);
+
+			svg.append("g")
+				.attr("class", "y axis")
+				.call(yAxis)
+				.append("text")
+					.attr("transform", "rotate(-90)")
+					.attr("y", 6)
+					.attr("dy", ".71em")
+					.style("text-anchor", "end")
+					.text("Number");
+
+			svg.selectAll(".bar")
+				.data(nested_data)
+				.enter()
+				.append("rect")
+					.attr("class", "bar")
+					.attr("x", function(d) { return x (d.key); })
+					.attr("width", x.rangeBand())
+					.attr("y", function(d) { return y(d.values.count); })
+					.attr("height", function(d) { return height - y(d.values.count); })
+					.on('mouseover', tip.show)
+					.on('mouseout', tip.hide)
+
+			svg.selectAll(".x.axis text")
+				.attr("transform", function(d) {
+					return "translate(" + this.getBBox().height * -1 + "," + this.getBBox().height + ")rotate(-45)";
+				})
+
+			console.log(nested_data)
+			console.log(data);
+
+		});
+	</script>
+</body>
+</html>

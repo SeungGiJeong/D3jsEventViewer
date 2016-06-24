@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+    
+    <head>
+        
+        <title>SK</title>
+        
+        <link rel="stylesheet" href="./timeseries/default.css" />
+        <link rel="stylesheet" href="./timeseries/style.css" />
+        <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+        
+        <script src="./js/d3.v3.min.js" ></script>
+        <script type="text/javascript" src="./js/lodash.min.js"></script>
+        <script type="text/javascript" src="./js/moment.min.js"></script>
+        <script type="text/javascript" src="./js/highlight.min.js"></script>
+        
+        <script src="./js/timeseries.js"></script>
+    
+    </head>
+
+    <body>
+        
+        <script>
+            hljs.initHighlightingOnLoad();
+            function getQuerystring(paramName){
+                var _tempUrl = window.location.search.substring(1); 
+                console.log(_tempUrl)
+                if(_tempUrl==""){
+                    return;
+                }
+                var _tempArray = _tempUrl.split('&'); 
+                
+                for(var i = 0; _tempArray.length; i++) {
+                    var _keyValuePair = _tempArray[i].split('='); 
+                    
+                    if(_keyValuePair[0] == paramName){ 
+                        return _keyValuePair[1];
+                    }
+                }
+            }
+        </script>
+        
+        <div class="container">
+            <div class="timeseries one"></div>
+        </div>
+        
+        <script>
+            window.onload = function() {
+            
+                if (window.innerWidth < 800)
+                amount = 30;
+                
+                d3.csv("./Data/logons.csv", function(data) {
+                    return {
+                        value: data.DateTime,
+                        eventid: data.EventID,
+                        userid: data.User
+                    };
+                }, 
+                    function (error, rows){
+                        var nested_data = d3.nest()
+                        .key(function(d) { return d.userid; })
+                        .rollup(function(v) {return {count: v.length};})
+                        .entries(rows);
+                        
+                        
+//                        user_list = nested_data.map(function(d) { return {key: d.key, cnt:d.values.count};})
+//                        user_list.sort(function(a,b) {
+//                            return b.cnt-a.cnt
+//                        });
+//                        user_list.splice(21, Number.MAX_VALUE);
+
+
+                        req_info = getQuerystring('req_info')
+                        console.log(req_info)
+                        if(req_info != null){
+                            var show_arr = [];                        
+                            if (req_info=="%22%22"){
+                                req_info="";
+                            }
+
+                            rows.map(function(d) { 
+                                if( d.userid == req_info){
+                                    show_arr.push(d);
+                                }
+                            })
+
+                            show_arr.forEach(function(d){
+                        
+                                if(d.eventid == '540'){
+                                    parseDate = d3.time.format("%d/%m/%Y %X").parse;
+                                }
+                                else if(d.eventid == '4624'){
+                                    parseDate = d3.time.format("%x %X %p").parse;
+                                }
+                                else if(d.eventid == '528'){
+                                    parseDate = d3.time.format("%d/%m/%Y %X").parse;
+                                }
+                                d.value = (+parseDate(d.value));
+    
+                            });
+                        
+                            timeseries('timeseries one', show_arr, true);
+
+                        }
+                        else{
+
+                            rows.forEach(function(d){
+                            
+                                if(d.eventid == '540'){
+                                    parseDate = d3.time.format("%d/%m/%Y %X").parse;
+                                }
+                                else if(d.eventid == '4624'){
+                                    parseDate = d3.time.format("%x %X %p").parse;
+                                }
+                                else if(d.eventid == '528'){
+                                    parseDate = d3.time.format("%d/%m/%Y %X").parse;
+                                }
+                                d.value = (+parseDate(d.value));
+        
+                            });
+                            timeseries('timeseries one', rows, true);
+                        }
+                        
+
+                    }
+                );
+            }
+    
+        </script>
+    
+    
+    </body>
+    
+</html>
